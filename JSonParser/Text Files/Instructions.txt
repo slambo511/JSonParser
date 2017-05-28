@@ -1,0 +1,128 @@
+Working with JSON in C#				//Uses Install-Package Newtonsoft.Json in PM from nuget.org
+MAY 5, 2014 BY JENNIFER MARSH
+c# jsonJavaScript Object Notation (JSON) is a way of representing data structures in a “human-readable” form that can be used to exchange information between two different applications. Most commonly this is between client-side JavaScript running in a web browser, and a server-side script running on the web server. Although derived from JavaScript, JSON is a flexible format that can be used with many programming languages.
+
+C# developers have a variety of structures, data formats, and mechanisms they can use to exchange information. The most common use of JSON for them is when communicating with a web service that only accepts and returns data in JSON format. It may be helpful to get an introduction to web APIs before continuing, which will provide background information as to why JSON is used and the benefits of working with web services. A fair amount of experience working with C# is assumed here, so it would be beneficial for beginners to learn programming in C# prior to attempting these techniques.
+
+A Brief Overview of JSON
+
+JSON represents objects in a structured text format, with data stored as key-value (or attribute-value) pairs, an example of which is shown below:
+
+<script type="text/javascript">
+var udemy = {
+"name": "Media Relations",
+"email": "press@udemy.com",
+"notes": "Member of the media? We'd love to hear from you."
+};
+</script>
+This script block was written for inclusion on a web page, and declares an object representing an entry in a simple address book or contacts list. From JavaScript, you access the information using a dot syntax like udemy.name or udemy.email. The code between the equals sign and the semicolon is what is referred to as JSON.
+
+Because of the flexibility that JavaScript offers, it’s possible to declare a list of objects using one assignment statement:
+
+<script type="text/javascript">
+var contacts = [
+{
+"name": "Media Relations",
+"email": "press@udemy.com",
+"notes": "Member of the media? We'd love to hear from you."
+},
+{
+"name": "Business Development",
+"email": "bizdev@udemy.com",
+"notes": "For general business development inquiries."
+}
+];
+</script>
+Notice how square brackets are used to mark the array of objects, and each object is surrounded by curly brackets and separated by a comma.
+
+Unfortunately, the syntax used by JSON is based on JavaScript (which can be interpreted on-the-fly) and cannot be processed the same way by C#.
+
+There are three key methods for working with JSON in C# code:
+
+use a free library that can handle most of the work for you;
+work with DataContracts that are built-in to the .NET framework;
+or write your own “parser” to convert JSON in strings to a suitable collection of objects.
+These methods range from being suitable for beginners, to highly-advanced concepts that should only be attempted by experienced, and knowledgeable, C# programmers.
+
+Using JSON Libraries for C#
+
+This method of working with JSON in your C# applications is, obviously, the easiest. Many free libraries exist that can simplify the process of working with flexible data structures returned in JSON format by a web service. Json.NET and Json-Sharp are two of the most popular.
+
+The basic principle behind using either library is this:
+
+Add the library to your project.
+Call a deserialization method from the appropriate converter class.
+Pass JSON data in as a String to the converter.
+Receive the result as a .NET framework object (usually a collection of some kind).
+The code example below uses the Json.NET library to convert the object stored in the string “source” to a .NET framework Dictionary. In this example, source contains the JSON data from the first example in the section “A Brief Overview of JSON” above, which contains a single object.
+
+Dictionary<string, string> udemy = JsonConvert.DeserializeObject<Dictionary<string,string>>(source);
+System.Diagnostics.Debug.WriteLine(udemy[“name”]);
+
+Json.NET can deserialize to a wide variety of object types, including custom classes. This example deserializes the object to a Dictionary that is defined as having a string for a key, and a string for the value.
+
+For the second example above – an array of objects – you need to tell Json.NET to deserialize to a different object format, for example an array of Dictionary objects:
+
+Dictionary<string, string>[] contacts = JsonConvert.DeserializeObject<Dictionary<string,string>[]>(source);
+
+System.Diagnostics.Debug.WriteLine(contacts[1]["name"]);
+Serialization using Json.NET is even easier. In this next sample, a Dictionary of strings (similar to the one used above for deserialization) is declared and then serialized to JSON format.
+
+Dictionary<string, string> udemy = new Dictionary<string, string>();
+udemy.Add("name", "Media Relations");
+udemy.Add("email", "press@udemy.com");
+udemy.Add("notes", "Member of the press? We'd love to hear from you.");
+string js = JsonConvert.SerializeObject(udemy);
+System.Diagnostics.Debug.WriteLine(js);
+JSON Serialization Using Standard .NET Framework Classes
+
+From .NET Framework v3.5 onwards, Microsoft has included JSON serialization and deserialization in the framework. Unlike the libraries mentioned above, using these classes often requires greater knowledge of the web service you are working with. Because of that, it is a slightly more advanced technique.
+
+Deserialization of JSON-formatted data can be done through classes and methods in the System.Runtime.Serialization and System.Runtime.Serialization.Json libraries. To use them, you must first add a reference to System.Runtime.Serialization in your project, and then define the types of object you will be working with, using DataContract attributes. For example:
+
+[DataContract]
+class Udemy
+{
+[DataMember]
+public string name;
+[DataMember]
+public string email;
+[DataMember]
+public string notes;
+}
+The object can then be deserialized using an instance of DataContractJsonSerializer. The following code assumes that the string variable source contains the single object from the first example in the section “A Brief Overview of JSON” above
+
+DataContractJsonSerializer js = new DataContractJsonSerializer(typeof(Udemy));
+MemoryStream stream = new MemoryStream(Encoding.UTF8.GetBytes(source));
+Udemy u = (Udemy)js.ReadObject(stream);
+System.Diagnostics.Debug.WriteLine(u.name);
+To deserialize the array of objects from the second example in the section “A Brief Overview of JSON”, the code needs some small alterations. Here you can see how to deserialize to a List of Udemy objects instead:
+
+DataContractJsonSerializer js = new DataContractJsonSerializer(typeof(List<Udemy>));
+MemoryStream stream = new MemoryStream(Encoding.UTF8.GetBytes(source));
+List<Udemy> contacts = (List<Udemy>)js.ReadObject(stream);
+System.Diagnostics.Debug.WriteLine(contacts[1].name);
+Serialization is a similarly straightforward process, assuming that you have spent time defining all of the structures and classes that represent the information you need to send to the server:
+
+Udemy u = new Udemy();
+u.name = "Media Relations";
+u.email = "press@udemy.com";
+u.notes = "Member of the press? We'd love to hear from you.";
+DataContractJsonSerializer js = new DataContractJsonSerializer(typeof(Udemy));
+MemoryStream stream = new MemoryStream();
+js.WriteObject(stream, u);
+stream.Position = 0;
+System.Diagnostics.Debug.WriteLine(new StreamReader(stream).ReadToEnd());
+Writing Your Own JSON Parser
+
+Of course, it’s always possible to write your own code to convert JSON in strings to a form that you can work with in your C# application. However, this can be an extremely difficult process, sharing many similarities with compiler design, and you should give careful thought to whether this is a worthwhile task.
+
+In compiler design, a “lexer” (or lexical analyzer) takes source code in a text file and “parses” it into a hierarchical tree of “tokens”. It has to deal with whitespace issues, checking for errors, and deciding what words or symbols represent in the context of the language. This is very similar to the process you would need to build a JSON parser. With the information parsed to a tree, you would traverse the tree and build up your object’s structure.
+
+Very few people write lexers anymore. Instead, programs called “parser generators” are used to generate source code for a lexer that you can incorporate into your application. For C# developers, CsLex by Brad Merrill can be used to take a specification of the language (written in a text file) and generate C# source code that can understand that language. But that still leaves you with a lot of work to do to actually process the tokens into a usable object, and even writing the language specification file can be a time-consuming and difficult process.
+
+Recommendations
+
+In most cases, using a JSON library will be the easiest way of working with JSON-formatted data in C#. In situations where you don’t want to use a third-party library, and have a good understanding of how data is structured in the web service, using the standard .NET Framework libraries would be a good option.
+
+For more information and practical examples of some of the subjects discussed above, Learn C# 2010 Part III provides a thorough tutorial of using collections, LINQ, and JSON-based web APIs
